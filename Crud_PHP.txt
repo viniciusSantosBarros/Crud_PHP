@@ -1,0 +1,204 @@
+
+// 1 Página - Banco de dados MySql
+
+//CREATE TABLE usuario(
+//id INT NOT NULL AUTO_INCREMENT
+//Nome VARCHAR(45) NOT NULL,
+//Email VARCHAR(45) NOT NULL,
+//PRIMARY KEY(id)
+//);
+
+// ------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+// 2 Página config.php - Conexão entre Banco de dados MySql e Linguagem de programação PHP
+
+<?php
+
+$dbName = 'test';
+$dbHost = 'localhost';
+$dbUser = 'root';
+$dbPassword = '';
+
+$pdo = new PDO ("mysql:dbname=".$dbName.";host=".$dbHost, $dbUser, $dbPassword);
+
+// ------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+// 3 Página cadastrar.php
+
+<h1>Cadastrar Usuário</h1>
+
+<form action="cadastrar_action.php" method="post">
+
+<label for="nome">Nome:</label> <input type="text" name="nome" id="nome">
+<label for="email">Email:</label> <input type="email" name="email" id="email">
+<input type="submit" name="submit" value="Salvar">
+</form>
+
+// ------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+// 4 Página cadastrar_action.php
+
+<?php
+require 'config.php';
+
+$nome = filter_input(INPUT_POST, 'nome');
+$email = filter_input(INPUT_POST, 'email', FILTER_VALIDATE_EMAIL);
+
+if($nome && $email){
+
+  $sql = $pdo->prepare("SELECT * FROM usuario WHERE email = :email");
+  $sql->bindValue(':email', $email);
+  $sql->execute();
+
+  if($sql->rowCount() === 0){
+
+    $sql = $pdo->prepare("INSERT INTO usuario (nome, email) VALUES (:nome, :email)");
+
+    $sql->bindValue(':nome', $nome);
+    $sql->bindValue(':email', $email);
+    $sql->execute();
+
+    header("Location: index.php");
+    exit;
+
+  } else{
+    header("Location: cadastrar.php");
+    exit;
+  }
+
+} else {
+    header("Location: cadastrar.php");
+    exit;
+}
+
+// ------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+// 5 Página editar.php
+
+<?php
+require 'config.php';
+
+$usuario = [];
+$id = filter_input(INPUT_GET, 'id');
+if($id){
+    $sql = $pdo->prepare("SELECT * FROM usuario WHERE id = :id");
+    $sql->bindvalue(':id', $id);
+    $sql->execute();
+
+    if($sql->rowCount() > 0){
+        $usuario = $sql->fetch(PDO::FETCH_ASSOC);
+    } else{
+        header("Location: index.php");
+        exit;
+    }
+} else{
+    header("Location: index.php");
+}
+
+?>
+
+<h1>Editar Usuário</h1>
+
+<form action="editar_action.php" method="post">
+    <input type="hidden" name="id" value="<?=$usuario['id'];?>">
+    <label>
+        Nome: <input type="text" name="nome" value="<?=$usuario['nome'];?>" id="nome">
+    </label>
+    <label>
+        Email: <input type="text" name="email" value="<?=$usuario['email'];?>" id="email">
+    </label>
+    <input type="submit" value="Atualizar">
+
+</form>
+
+// ------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+// 6 Página editar_action.php
+
+<?php
+require 'config.php';
+
+$id = filter_input(INPUT_POST, 'id');
+$nome = filter_input(INPUT_POST, 'nome');
+$email = filter_input(INPUT_POST, 'email', FILTER_VALIDATE_EMAIL);
+
+if($id && $nome && $email){
+   $sql = $pdo->prepare("UPDATE usuario SET nome = :nome, email = :email WHERE id = :id");
+   $sql->bindValue(':nome', $nome);
+   $sql->bindValue(':email', $email);
+   $sql->bindValue(':id', $id);
+   $sql->execute();
+
+   header("Location: index.php");
+   exit;
+} else{
+    //  header("Location: index.php");
+    //  exit;
+
+    echo "aqui";
+}
+
+// ------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+// 7 Página excluir.php
+
+<?php
+require 'config.php';
+
+$id = filter_input(INPUT_GET, 'id');
+
+if($id){
+    $sql = $pdo->prepare("DELETE FROM usuario WHERE id = :id");
+    $sql->bindValue(':id', $id);
+    $sql->execute();
+}
+
+header("Location: index.php");
+
+?>
+
+// ------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+// 8 Página index.php
+
+<?php
+require 'config.php';
+
+$lista = [];
+
+$sql = $pdo->query("SELECT * FROM usuario");
+
+if ($sql->rowCount() > 0){
+  $lista = $sql->fetchall(PDO::FETCH_ASSOC);
+}
+
+?>
+
+<h1>Listagem de Usuários</h1>
+
+<table border = "1">
+
+<tr>
+  <th>ID</th>
+  <th>Nome</th>
+  <th>Email</th>
+  <th>Ações</th>
+</tr>
+
+<?php foreach($lista as $usuario): ?>
+
+  <tr>  
+    <td><?=$usuario['id'];?></td>
+    <td><?=$usuario['nome'];?></td>
+    <td><?=$usuario['email'];?></td>
+    <td>
+      <a href="editar.php?id=<?=$usuario['id'];?>">[ Editar ]</a>
+      <a href="excluir.php?id=<?=$usuario['id'];?>"> [ Excluir ]</a>
+    </td>
+  </tr>
+
+  <?php endforeach;?>
+
+</table>
+
+<a href="cadastrar.php">Cadastrar Usuário</a>
